@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>heh.</title>
+<style>
+:root{
+  --charcoal:#171513;
+  --brown:#5a4030;
+  --brown2:#765744;
+  --cream:#eee4d1;
+  --muted:#a99a86;
+  --line:rgba(238,228,209,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--charcoal);color:var(--cream);font-family:Georgia,"Times New Roman",serif}
+body{
+  min-height:100vh;display:grid;place-items:center;overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 15%,rgba(118,87,68,.18),transparent 32%),
+    radial-gradient(circle at 80% 85%,rgba(90,64,48,.16),transparent 35%),
+    var(--charcoal);
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+.wrap{width:min(680px,90vw);text-align:center;padding:34px 0}
+.kicker{font:11px/1.2 system-ui,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:25px}
+h1{font-size:clamp(72px,18vw,150px);font-weight:400;letter-spacing:-.07em;line-height:.8;margin:0 0 34px}
+.sub{font-size:17px;color:#c5b9a6;margin:0 auto 32px;max-width:420px;line-height:1.6}
+.card{
+  background:rgba(31,27,24,.78);border:1px solid var(--line);
+  border-radius:22px;padding:22px;text-align:left;
+  box-shadow:0 22px 70px rgba(0,0,0,.28);backdrop-filter:blur(10px)
+}
+label{display:block;font:11px system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+textarea{
+  width:100%;min-height:150px;resize:none;border:1px solid var(--line);border-radius:15px;
+  background:#211d1a;color:var(--cream);padding:18px;font:18px/1.55 Georgia,serif;outline:none;
+}
+textarea:focus{border-color:rgba(238,228,209,.35)}
+button{
+  width:100%;margin-top:12px;padding:15px;border:0;border-radius:13px;
+  background:var(--cream);color:var(--charcoal);font:600 13px system-ui,sans-serif;
+  letter-spacing:.08em;cursor:pointer
+}
+button:active{transform:translateY(1px)}
+.note{margin-top:25px;font:12px/1.5 system-ui,sans-serif;color:#857968}
+.message{display:none;margin-top:22px;padding:18px;border-left:2px solid var(--brown2);text-align:left}
+.message.show{display:block}
+.message .small{font:10px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.message p{margin:0;font-size:19px;line-height:1.55;white-space:pre-wrap}
+.status{height:20px;margin-top:10px;text-align:center;font:12px system-ui,sans-serif;color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="kicker">a tiny place on the internet</div>
+  <h1>heh.</h1>
+  <p class="sub">Leave something here for the person who opens this after you.</p>
+
+  <section class="card">
+    <label for="text">write something</label>
+    <textarea id="text" maxlength="500" placeholder="anything. a thought, a joke, a sentence..."></textarea>
+    <button id="send">LEAVE IT FOR THE NEXT PERSON</button>
+    <div class="status" id="status"></div>
+    <div class="message" id="message">
+      <div class="small">left by someone before you</div>
+      <p id="messageText"></p>
+    </div>
+  </section>
+
+  <div class="note">No account. No profile. Just a message passed forward.</div>
+</main>
+<script>
+const box=document.getElementById('text');
+const send=document.getElementById('send');
+const status=document.getElementById('status');
+const msg=document.getElementById('message');
+const msgText=document.getElementById('messageText');
+
+async function loadMessage(){
+  try{
+    const r=await fetch('/api/message',{cache:'no-store'});
+    if(!r.ok) throw new Error();
+    const d=await r.json();
+    if(d.message){ msgText.textContent=d.message; msg.classList.add('show'); }
+  }catch(e){
+    const local=localStorage.getItem('heh_message');
+    if(local){msgText.textContent=local;msg.classList.add('show');}
+  }
+}
+send.addEventListener('click',async()=>{
+  const value=box.value.trim();
+  if(!value){status.textContent='write something first.';return;}
+  send.disabled=true; status.textContent='leaving it behind...';
+  try{
+    const r=await fetch('/api/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:value})});
+    if(!r.ok) throw new Error();
+    box.value='';
+    status.textContent='left it.';
+  }catch(e){
+    localStorage.setItem('heh_message',value);
+    box.value='';
+    status.textContent='saved on this device. A server is needed to pass it to other devices.';
+  }finally{send.disabled=false; await loadMessage();}
+});
+loadMessage();
+</script>
+</body>
+</html>
